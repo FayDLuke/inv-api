@@ -1,32 +1,39 @@
-# This workflow will install Python dependencies and run tests with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
-name: Build
-
+name: Build Endstone Plugin
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
-
+    branches:
+      - main
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [ "3.10", "3.11", "3.12", "3.13", "3.14" ]
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install
+          python-version: "3.12"
+          cache: pip
+      - name: Upgrade Build Tools
         run: |
-          python -m pip install --upgrade pip
-          pip install .
+          python -m pip install --upgrade pip setuptools wheel build
+      - name: Install Dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          fi
+      - name: Build Plugin
+        run: |
+          python -m build --wheel
+      - name: Upload Wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: endstone-plugin
+          path: dist/*.whl
+          if-no-files-found: error
